@@ -1,4 +1,4 @@
-public class Boogle {
+public class RockPaperScissors {
     // Boolean variable which is true until player wants to quit
     public boolean keepPlaying = true;
 
@@ -7,7 +7,7 @@ public class Boogle {
      * You will create this as for now it just prints out - TBD.
      */
     public void run() {
-        System.out.println("Boogle - TBD");
+        System.out.println("Rock Paper Scissors - TBD");
     }
 
     /**
