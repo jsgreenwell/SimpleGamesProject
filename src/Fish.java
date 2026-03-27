@@ -1,4 +1,4 @@
-public class Scramble {
+public class Fish {
     // Boolean variable which is true until player wants to quit
     public boolean keepPlaying = true;
 
@@ -7,7 +7,7 @@ public class Scramble {
      * You will create this as for now it just prints out - TBD.
      */
     public void run() {
-        System.out.println("Scramble - TBD");
+        System.out.println("Fish - TBD");
     }
 
     /**

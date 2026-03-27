@@ -9,12 +9,13 @@ public class Main {
             System.out.print("""
                     Hello and Welcome to the main menu!
                     Please select from the following options (or 9 to exit):
-                        0: Boogle
-                        1: Card Game
-                        2: Rock Paper Scissors
-                        3: Word Scamble
-                        4: Tic Tac Toe
-                        5: Wheel of Fortune
+                        0: Go Fish
+                        1: Black Jack
+                        2: Poker
+                        3: Rummy
+                        4: Solitaire
+                        5: Uno
+                        6: War
                         9: Exit
                     Enter the number of your selection:
                     """);
@@ -22,45 +23,52 @@ public class Main {
             choice = Short.parseShort(scan.nextLine());
             switch (choice) {
                 case 0:
-                    Boogle boogle = new Boogle();
-                    while (boogle.keepPlaying) {
-                        boogle.run();
-                        boogle.checkExit();
+                    Fish fish = new Fish();
+                    while (fish.keepPlaying) {
+                        fish.run();
+                        fish.checkExit();
                     }
                     break;
                 case 1:
-                    CardGame cardgame = new CardGame();
-                    while (cardgame.keepPlaying) {
-                        cardgame.run();
-                        cardgame.checkExit();
+                    BlackJack blackJack = new BlackJack();
+                    while (blackJack.keepPlaying) {
+                        blackJack.run();
+                        blackJack.checkExit();
                     }
                     break;
                 case 2:
-                    RockPaperScissors rps = new RockPaperScissors();
-                    while (rps.keepPlaying) {
-                        rps.run();
-                        rps.checkExit();
+                    Poker poker = new Poker();
+                    while (poker.keepPlaying) {
+                        poker.run();
+                        poker.checkExit();
                     }
                     break;
                 case 3:
-                    Scramble scramble = new Scramble();
-                    while (scramble.keepPlaying) {
-                        scramble.run();
-                        scramble.checkExit();
+                    Rummy rummy = new Rummy();
+                    while (rummy.keepPlaying) {
+                        rummy.run();
+                        rummy.checkExit();
                     }
                     break;
                 case 4:
-                    TicTacToe ttt = new TicTacToe();
-                    while (ttt.keepPlaying) {
-                        ttt.run();
-                        ttt.checkExit();
+                    Solitaire sol = new Solitaire();
+                    while (sol.keepPlaying) {
+                        sol.run();
+                        sol.checkExit();
                     }
                     break;
                 case 5:
-                    Wheel wheel = new Wheel();
-                    while (wheel.keepPlaying) {
-                        wheel.run();
-                        wheel.checkExit();
+                    Uno uno = new Uno();
+                    while (uno.keepPlaying) {
+                        uno.run();
+                        uno.checkExit();
+                    }
+                    break;
+                case 6:
+                    War war = new War();
+                    while (war.keepPlaying) {
+                        war.run();
+                        war.checkExit();
                     }
                     break;
                 default:
