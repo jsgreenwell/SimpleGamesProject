@@ -1,0 +1,400 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Scanner;
+
+public class Uno {
+    //  Card Attributes
+    private static final String[] COLORS  = {"Red", "Yellow", "Green", "Blue"};
+    private static final String[] VALUES  = {
+            "0","1","2","3","4","5","6","7","8","9",
+            "Skip","Reverse","Draw Two"
+    };
+    private static final String[] WILDS   = {"Wild", "Wild Draw Four"};
+
+    //  Game Components
+    public boolean keepPlaying = true;
+    private List<String> deck = new ArrayList<>();
+    private List<String> discardPile = new ArrayList<>();
+    private List<String> playerHand = new ArrayList<>();
+    private List<String> cpuHand = new ArrayList<>();
+    private String currentColor;
+    private boolean playerTurn;
+    private boolean gameOver;
+    private final Scanner scan = new Scanner(System.in);
+
+    /**
+     * Runs one full game of Uno, then returns to Main's while-loop,
+     * which calls checkExit() next.
+     */
+    public void run() {
+        System.out.println("----->   YOU ARE NOW PLAYING ... UNO!!   <-----");
+        initGame();
+        gameOver = false;
+        while (!gameOver) {
+            if (playerTurn) {
+                playerTurn();
+            } else {
+                cpuTurn();
+            }
+            if (playerHand.isEmpty()) {
+                System.out.println("\nYou got rid of all your cards — YOU WIN!");
+                gameOver = true;
+            } else if (cpuHand.isEmpty()) {
+                System.out.println("\nThe CPU played all their cards — YOU LOST TO A BOT!");
+                gameOver = true;
+            }
+        }
+    }
+
+    /**
+     * Asks the player whether to play again. Sets keepPlaying = false to exit.
+     */
+    public void checkExit() {
+        System.out.print("\nWould you like to play Uno again? (y/n): ");
+        String answer = scan.nextLine().trim().toLowerCase();
+        if (!answer.equals("y")) {
+            keepPlaying = false;
+            System.out.println("You have completed playing UNO!\n");
+        }
+    }
+
+    // Setups Game
+
+    private void initGame() {
+        deck.clear();
+        discardPile.clear();
+        playerHand.clear();
+        cpuHand.clear();
+        buildDeck();
+        Collections.shuffle(deck);
+
+        // Deals 7 cards each
+        for (int i = 0; i < 7; i++) {
+            playerHand.add(drawFromDeck());
+            cpuHand.add(drawFromDeck());
+        }
+        String firstCard = drawFromDeck();
+        while (isWild(firstCard)) {
+            deck.add(firstCard);
+            Collections.shuffle(deck);
+            firstCard = drawFromDeck();
+        }
+        discardPile.add(firstCard);
+        currentColor = getColor(firstCard);
+
+        // Randomly decide who goes first
+        playerTurn = (Math.random() < 0.5);
+        System.out.println("Starting card: " + firstCard);
+        System.out.println((playerTurn ? "You go" : "CPU goes") + " first!\n");
+
+        applyStartingCardEffect(firstCard);
+    }
+    // 2 of each number per color other than 0
+    private void buildDeck() {
+        for (String color : COLORS) {
+            for (String value : VALUES) {
+                deck.add(color + " " + value);
+                if (!value.equals("0")) {
+                    deck.add(color + " " + value);
+                }
+            }
+        }
+        // 4 of each wild
+        for (String wild : WILDS) {
+            for (int i = 0; i < 4; i++) {
+                deck.add(wild);
+            }
+        }
+    }
+
+    // This class handles the special cards if they are picked at start of game
+    private void applyStartingCardEffect(String card) {
+        String value = getValue(card);
+        switch (value) {
+            case "Skip":
+            case "Reverse":
+                System.out.println("Starting card is " + value + "! " +
+                        (playerTurn ? "CPU" : "You") + " get(s) skipped.");
+                playerTurn = !playerTurn;
+                break;
+            case "Draw Two":
+                if (playerTurn) {
+                    System.out.println("Starting card is Draw Two! CPU draws 2 and is skipped.");
+                    cpuHand.add(drawFromDeck());
+                    cpuHand.add(drawFromDeck());
+                } else {
+                    System.out.println("Starting card is Draw Two! You draw 2 and are skipped.");
+                    playerHand.add(drawFromDeck());
+                    playerHand.add(drawFromDeck());
+                    playerTurn = true;
+                }
+                break;
+        }
+    }
+
+    //  This class handles the User turn
+    private void playerTurn() {
+        System.out.println("--------------------");
+        System.out.println("YOUR TURN");
+        System.out.println("Top card : " + topCard());
+        System.out.println("CPU hand : " + cpuHand.size() + " card(s)");
+        printHand();
+        //Shows the options that the User has in terms of what he can play
+        List<Integer> playable = getPlayableIndices(playerHand);
+
+        if (playable.isEmpty()) {
+            System.out.println("No playable cards ... drawing one.");
+            String drawn = drawFromDeck();
+            System.out.println("You drew : " + drawn);
+            playerHand.add(drawn);
+
+            // Checks if the drawn card is playable
+            if (canPlay(drawn)) {
+                System.out.print("Drawn card is playable. Play it? (y/n): ");
+                if (scan.nextLine().trim().equalsIgnoreCase("y")) {
+                    playerHand.remove(drawn);
+                    playCard(drawn, true);
+                    return;
+                }
+            }
+            System.out.println("Passing turn.");
+            playerTurn = false;
+            return;
+        }
+
+        // Ask the User to play a card
+        int choice = -1;
+        while (!playable.contains(choice)) {
+            System.out.print("Enter card number to play : ");
+            for (int i = 0; i < playable.size(); i++) {
+                System.out.print(playable.get(i));
+                if (i < playable.size() - 1) System.out.print(", ");
+            }
+            System.out.print(" : ");
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number:");
+            }
+        }
+
+        String card = playerHand.remove(choice);
+        playCard(card, true);
+    }
+
+    // This class works on the CPU turn
+
+    private void cpuTurn() {
+        System.out.println("--------------------");
+        System.out.println("CPU'S TURN  (" + cpuHand.size() + " cards)");
+
+        List<Integer> playable = getPlayableIndices(cpuHand);
+
+        if (playable.isEmpty()) {
+            System.out.println("CPU has no playable cards ... draws one.");
+            String drawn = drawFromDeck();
+            cpuHand.add(drawn);
+            if (canPlay(drawn)) {
+                System.out.println("CPU plays drawn card: " + drawn);
+                cpuHand.remove(drawn);
+                playCard(drawn, false);
+                return;
+            }
+            System.out.println("CPU passes.");
+            playerTurn = true;
+            return;
+        }
+
+        // Simple CPU strategy: prefer non-wild action cards, then number cards, wilds last
+        int chosen = chooseCpuCard(playable);
+        String card = cpuHand.remove(chosen);
+        System.out.println("CPU plays: " + card);
+        playCard(card, false);
+    }
+
+    // The CPU's preferences (will play draw 2/4 preferably).
+    private int chooseCpuCard(List<Integer> playable) {
+        for (int idx : playable) {
+            String v = getValue(cpuHand.get(idx));
+            if (v.equals("Draw Two") || v.equals("Wild Draw Four")) return idx;
+        }
+        for (int idx : playable) {
+            String v = getValue(cpuHand.get(idx));
+            if (v.equals("Skip") || v.equals("Reverse")) return idx;
+        }
+        // Otherwise biggest playable number
+        return playable.get(0);
+    }
+
+    //  Establishes logic of the special cards
+
+    private void playCard(String card, boolean isPlayer) {
+        discardPile.add(card);
+        String value = getValue(card);
+
+        if (isWild(card)) {
+            handleWild(card, isPlayer);
+            return;
+        }
+        currentColor = getColor(card);
+
+        switch (value) {
+            case "Skip":
+                if (isPlayer) {
+                    System.out.println("Skip! CPU loses its turn.");
+                } else {
+                    System.out.println("CPU played Skip! Your turn is skipped.");
+                }
+                break;
+
+            case "Reverse":
+                if (isPlayer) {
+                    System.out.println("Reverse! CPU loses its turn.");
+                } else {
+                    System.out.println("CPU played Reverse! Your turn is skipped.");
+                }
+                break;
+
+            case "Draw Two":
+                if (isPlayer) {
+                    System.out.println("Draw Two! CPU draws 2 cards and loses its turn.");
+                    cpuHand.add(drawFromDeck());
+                    cpuHand.add(drawFromDeck());
+                } else {
+                    System.out.println("CPU played Draw Two! You draw 2 cards and lose your turn.");
+                    playerHand.add(drawFromDeck());
+                    playerHand.add(drawFromDeck());
+                    playerTurn = true;
+                    playerTurn = false;
+                    return;
+                }
+                break;
+
+            default:
+                // Normal numbered card just switches to other player
+                playerTurn = !isPlayer;
+                return;
+        }
+
+        // For Skip/Reverse: current player plays again
+        playerTurn = isPlayer;
+    }
+    //Wild card logic
+    private void handleWild(String card, boolean isPlayer) {
+        if (isPlayer) {
+            System.out.println("You played a " + card + "!");
+            System.out.println("Choose a color: 0=Red  1=Yellow  2=Green  3=Blue");
+            int c = -1;
+            while (c < 0 || c > 3) {
+                System.out.print("Your choice: ");
+                try { c = Integer.parseInt(scan.nextLine().trim()); }
+                catch (NumberFormatException e) { /* retry */ }
+            }
+            currentColor = COLORS[c];
+            System.out.println("Color changed to: " + currentColor);
+
+            if (card.equals("Wild Draw Four")) {
+                System.out.println("CPU draws 4 cards and loses its turn!");
+                cpuHand.add(drawFromDeck());
+                cpuHand.add(drawFromDeck());
+                cpuHand.add(drawFromDeck());
+                cpuHand.add(drawFromDeck());
+                playerTurn = true;
+            } else {
+                playerTurn = false;
+            }
+        } else {
+            // CPU picks the color it has the most of
+            currentColor = cpuPickColor();
+            System.out.println("CPU played " + card + " and chose color: " + currentColor);
+            if (card.equals("Wild Draw Four")) {
+                System.out.println("You draw 4 cards and lose your turn!");
+                playerHand.add(drawFromDeck());
+                playerHand.add(drawFromDeck());
+                playerHand.add(drawFromDeck());
+                playerHand.add(drawFromDeck());
+                playerTurn = false;  // CPU goes again
+            } else {
+                playerTurn = true;
+            }
+        }
+    }
+
+    //CPU picks the color it has the most of
+    private String cpuPickColor() {
+        int[] counts = new int[4];
+        for (String card : cpuHand) {
+            if (!isWild(card)) {
+                for (int i = 0; i < COLORS.length; i++) {
+                    if (card.startsWith(COLORS[i])) counts[i]++;
+                }
+            }
+        }
+        int best = 0;
+        for (int i = 1; i < 4; i++) if (counts[i] > counts[best]) best = i;
+        return COLORS[best];
+    }
+
+    //  Deck & Hand Attributes/Logic
+
+    private String drawFromDeck() {
+        if (deck.isEmpty()) reshuffleDeck();
+        return deck.remove(0);
+    }
+
+    // Reshuffles deck minus the top card
+    private void reshuffleDeck() {
+        if (discardPile.size() <= 1) {
+            System.out.println("Deck is empty ... Now shuffling ...");
+            return;
+        }
+        String top = discardPile.remove(discardPile.size() - 1);
+        deck.addAll(discardPile);
+        discardPile.clear();
+        discardPile.add(top);
+        Collections.shuffle(deck);
+        System.out.println("Deck reshuffled from discard pile.");
+    }
+
+    private List<Integer> getPlayableIndices(List<String> hand) {
+        List<Integer> result = new ArrayList<>();
+        for (int i = 0; i < hand.size(); i++) {
+            if (canPlay(hand.get(i))) result.add(i);
+        }
+        return result;
+    }
+    private boolean canPlay(String card) {
+        if (isWild(card)) return true;
+        String top = topCard();
+        return getColor(card).equals(currentColor) || getValue(card).equals(getValue(top));
+    }
+    private String topCard() {
+        return discardPile.get(discardPile.size() - 1);
+    }
+
+
+    // Identifies Card Attributes
+
+    private boolean isWild(String card) {
+        return card.equals("Wild") || card.equals("Wild Draw Four");
+    }
+    private String getColor(String card) {
+        if (isWild(card)) return "";
+        return card.split(" ")[0];
+    }
+    private String getValue(String card) {
+        if (isWild(card)) return card;
+        // Value is everything after the first space
+        int spaceIdx = card.indexOf(' ');
+        return card.substring(spaceIdx + 1);
+    }
+
+    //  Displays Suer Hand
+    private void printHand() {
+        System.out.println("Your hand:");
+        for (int i = 0; i < playerHand.size(); i++) {
+            System.out.printf(" [%2d] %s%n", i, playerHand.get(i));
+        }
+    }
+}
